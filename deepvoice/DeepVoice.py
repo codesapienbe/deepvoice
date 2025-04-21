@@ -448,14 +448,14 @@ class DeepVoice:
                         voice.confidence = confidence
 
     @staticmethod
-    def verify(voice1: Union[Voice, np.ndarray], voice2: Union[Voice, np.ndarray],
+    def verify(voice1: Union[str, Voice, np.ndarray], voice2: Union[str, Voice, np.ndarray],
                threshold: Optional[float] = None) -> Dict[str, Any]:
         """
         Verify if two voice segments belong to the same speaker.
 
         Args:
-            voice1: First voice (Voice object or audio array)
-            voice2: Second voice (Voice object or audio array)
+            voice1: First voice (path to audio file, Voice object, or audio array)
+            voice2: Second voice (path to audio file, Voice object, or audio array)
             threshold: Similarity threshold (lower distance = more similar)
 
         Returns:
@@ -465,6 +465,19 @@ class DeepVoice:
 
         if threshold is None:
             threshold = DeepVoice.default_threshold
+
+        # Handle string paths by extracting voices
+        if isinstance(voice1, str):
+            extracted_voices = DeepVoice.extract_voices(voice1)
+            if not extracted_voices:
+                raise ValueError(f"No voice could be extracted from {voice1}")
+            voice1 = extracted_voices[0]  # Use the first extracted voice
+
+        if isinstance(voice2, str):
+            extracted_voices = DeepVoice.extract_voices(voice2)
+            if not extracted_voices:
+                raise ValueError(f"No voice could be extracted from {voice2}")
+            voice2 = extracted_voices[0]  # Use the first extracted voice
 
         # Extract audio data if Voice objects are provided
         audio1 = voice1.audio if isinstance(voice1, Voice) else voice1
@@ -487,14 +500,14 @@ class DeepVoice:
         }
 
     @staticmethod
-    def find(target_voice: Union[Voice, np.ndarray], voice_list: List[Union[Voice, np.ndarray]],
+    def find(target_voice: Union[str, Voice, np.ndarray], voice_list: List[Union[str, Voice, np.ndarray]],
              threshold: Optional[float] = None) -> List[Dict[str, Any]]:
         """
         Find instances of the target voice in a list of voice segments.
 
         Args:
-            target_voice: Target voice to find (Voice object or audio array)
-            voice_list: List of voices to search in (Voice objects or audio arrays)
+            target_voice: Target voice to find (path to audio file, Voice object, or audio array)
+            voice_list: List of voices to search in (paths to audio files, Voice objects, or audio arrays)
             threshold: Similarity threshold
 
         Returns:
@@ -507,17 +520,37 @@ class DeepVoice:
         if threshold is None:
             threshold = DeepVoice.default_threshold
 
+        # Handle string path for target_voice
+        if isinstance(target_voice, str):
+            extracted_voices = DeepVoice.extract_voices(target_voice)
+            if not extracted_voices:
+                raise ValueError(f"No voice could be extracted from target: {target_voice}")
+            target_voice = extracted_voices[0]  # Use the first extracted voice
+
         # Extract audio data if Voice object is provided
         target_audio = target_voice.audio if isinstance(target_voice, Voice) else target_voice
         target_embedding = DeepVoice.represent(target_audio)
 
         results = []
 
+        # Process voice_list to handle string paths
+        processed_voice_list = []
+        for i, voice in enumerate(voice_list):
+            if isinstance(voice, str):
+                extracted_voices = DeepVoice.extract_voices(voice)
+                if extracted_voices:
+                    # Add all extracted voices to the list with their original index
+                    for extracted_voice in extracted_voices:
+                        processed_voice_list.append((i, extracted_voice))
+            else:
+                # Keep the original voice with its index
+                processed_voice_list.append((i, voice))
+
         # Add progress bar
-        total_voices = len(voice_list)
+        total_voices = len(processed_voice_list)
         print(f"Comparing target voice to {total_voices} voice samples...")
 
-        for i, voice in tqdm(enumerate(voice_list), total=total_voices, desc="Voice lookup progress"):
+        for original_idx, voice in tqdm(processed_voice_list, total=total_voices, desc="Voice lookup progress"):
             # Extract audio data if Voice object is provided
             audio = voice.audio if isinstance(voice, Voice) else voice
             embedding = DeepVoice.represent(audio)
@@ -549,7 +582,7 @@ class DeepVoice:
                     result_voice = voice
 
                 results.append({
-                    "index": i,
+                    "index": original_idx,  # Use the original index from voice_list
                     "voice": result_voice,
                     "distance": distance_score,
                     "confidence": match_confidence
@@ -560,18 +593,29 @@ class DeepVoice:
         return results
 
     @staticmethod
-    def represent(audio: np.ndarray, sr: int = 16000) -> np.ndarray:
+    def represent(audio: Union[str, np.ndarray, Voice], sr: int = 16000) -> np.ndarray:
         """
         Create an embedding representation of a voice audio segment.
 
         Args:
-            audio: Audio waveform as numpy array
+            audio: Audio input as path to audio file, Voice object, or numpy array
             sr: Sample rate, defaults to 16000
 
         Returns:
             Embedding vector as 1D numpy array
         """
         DeepVoice._ensure_initialized()
+
+        # Handle string path
+        if isinstance(audio, str):
+            extracted_voices = DeepVoice.extract_voices(audio)
+            if not extracted_voices:
+                raise ValueError(f"No voice could be extracted from: {audio}")
+            audio = extracted_voices[0]  # Use the first extracted voice
+
+        # Handle Voice object
+        if isinstance(audio, Voice):
+            audio = audio.audio
 
         # Ensure audio is a numpy array with correct data type
         if not isinstance(audio, np.ndarray):

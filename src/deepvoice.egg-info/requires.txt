@@ -1,0 +1,11 @@
+numpy
+scipy
+torch
+torchaudio
+pyannote.audio
+librosa
+soundfile
+matplotlib
+PyAudio
+python-dotenv
+ffmpeg-python

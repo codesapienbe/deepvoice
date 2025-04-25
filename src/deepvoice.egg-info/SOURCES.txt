@@ -1,0 +1,10 @@
+LICENSE
+README.md
+pyproject.toml
+src/deepvoice/DeepVoice.py
+src/deepvoice/__init__.py
+src/deepvoice.egg-info/PKG-INFO
+src/deepvoice.egg-info/SOURCES.txt
+src/deepvoice.egg-info/dependency_links.txt
+src/deepvoice.egg-info/requires.txt
+src/deepvoice.egg-info/top_level.txt

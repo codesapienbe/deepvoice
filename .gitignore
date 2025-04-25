@@ -8,3 +8,4 @@
 /deepvoice.egg-info/
 
 /deeptest/data/
+*.wav

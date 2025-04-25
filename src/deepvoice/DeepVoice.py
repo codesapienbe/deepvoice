@@ -10,7 +10,7 @@ import torch
 from scipy.spatial.distance import cdist
 
 load_dotenv(
-    "../.env",
+    "../../.env",
     override=True,
     verbose=True,
     encoding="utf-8"

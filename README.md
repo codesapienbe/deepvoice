@@ -49,7 +49,7 @@ sudo apt-get install -y ffmpeg portaudio19-dev python3-dev
 ## Quick Start
 
 ```python
-from deepvoice import DeepVoice
+from src.deepvoice import DeepVoice
 
 # Extract voices from an audio file
 voices = DeepVoice.extract_voices("recording.wav")

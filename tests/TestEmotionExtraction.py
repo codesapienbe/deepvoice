@@ -65,7 +65,7 @@ class TestEmotionExtraction(unittest.TestCase):
                 print(f"  Time: {segment['start']}s - {segment['end']}s")
                 print(f"  Emotion: {segment['emotion']} (confidence: {segment['emotion_confidence']:.2f})")
 
-            # Verify structure of results
+            # Verify the structure of results
             self.assertIn("speaker", results[0])
             self.assertIn("start", results[0])
             self.assertIn("end", results[0])

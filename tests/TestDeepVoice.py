@@ -1,4 +1,4 @@
-from src.deepvoice import DeepVoice
+from deepvoice import DeepVoice
 
 def test_extract_voices(audio_path: str):
     voices = DeepVoice.extract_voices(audio_path=audio_path)
@@ -33,7 +33,7 @@ if __name__ == "__main__":
     # test_extract_voices("data/trvoice1.wav")
     # test_represent("data/trvoice1.wav")
     # test_verify("data/trvoice1.wav", "data/trvoice2.wav")
-    test_find("trvoice1.wav", "data")
+    test_find("data/trvoice1.wav", "data")
 
 
 

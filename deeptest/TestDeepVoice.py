@@ -2,10 +2,11 @@ from deepvoice import DeepVoice
 
 def test_extract_voices(audio_path: str):
     voices = DeepVoice.extract_voices(audio_path=audio_path)
-    for segment in voices:
+    for index, segment in enumerate(voices):
         print(
-            f"Speaker {segment['speaker']} from {segment['start']}s to {segment['end']}s, "
-            f"audio shape: {segment['content'].shape}"
+            f"Segment {index}:\n"
+            f"Speaker {segment['speaker']} from {segment['start']}s to {segment['end']}s\n"
+            f"Voice path: {segment['path']}"
         )
 
 def test_represent(audio_path: str):
@@ -19,8 +20,8 @@ def test_verify(audio1_path: str, audio2_path: str):
 
 
 if __name__ == "__main__":
-    # test_extract_voices("aliseriati.wav")
+    test_extract_voices("trvoice1.wav")
     # test_represent("trvoice1.wav")
-    test_verify("trvoice1.wav", "trvoice2.wav")
+    # test_verify("trvoice1.wav", "trvoice2.wav")
 
 

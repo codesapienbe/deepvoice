@@ -1,16 +1,13 @@
+import gc
 import os
-import tempfile
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 
 import ffmpeg
-from pyannote.audio import Pipeline, Audio, Inference, Model
-from pyannote.core import Segment
-import numpy as np
-
-import gc
-
 from dotenv import load_dotenv
+from pyannote.audio import Pipeline, Audio, Inference, Model
+import torch
+from scipy.spatial.distance import cdist
 
 load_dotenv(
     "../.env",
@@ -96,13 +93,13 @@ class DeepVoice:
         finally:
             gc.collect()
 
+
     @staticmethod
     def represent(
             audio_path: Any,
             embedding_model: str="embedding",
             hf_token: Optional[str] = None,
-            silent: bool = False,
-            gpu: Optional[bool] = False
+            silent: bool = False
     ) -> List[Dict[str, Any]] | None:
         """
         Extract speaker embeddings using pyannote's embedding model.
@@ -112,10 +109,6 @@ class DeepVoice:
         """
         results = []
         try:
-
-            if gpu:
-                import torch
-                torch.cuda.empty_cache()
 
             if hf_token is None:
                 hf_token = os.getenv("HUGGINGFACE_TOKEN")
@@ -142,23 +135,20 @@ class DeepVoice:
 
     @staticmethod
     def verify(
-            audio1_path: Any,
-            audio2_path: Any,
-            embedding_model: str = "embedding",
+            audio1: Any,
+            audio2: Any,
+            model: str = "embedding",
             hf_token: Optional[str] = None,
             silent: bool = False,
-            threshold: Optional[float] = 0.5,
-            gpu: Optional[bool] = False
+            threshold: Optional[float] = 0.5
     ) -> List[Dict[str, Any]] | None:
         """
-        Extract speakers embeddings' using pyannote's embedding model, then compare them.
+        Extract speaker embeddings' using pyannote's embedding model, then compare them.
         # 1. visit hf.co/pyannote/embedding and accept user conditions
         # 2. visit hf.co/settings/tokens to create an access token
         # 3. instantiate pretrained model
         """
         results = []
-        import torch
-        from scipy.spatial.distance import cdist
 
         try:
 
@@ -166,31 +156,107 @@ class DeepVoice:
                 hf_token = os.getenv("HUGGINGFACE_TOKEN")
 
             embed_model = Model.from_pretrained(
-                f"pyannote/{embedding_model}",
+                f"pyannote/{model}",
                 use_auth_token=hf_token,
                 strict=False
             )
             inference = Inference(embed_model, window="whole")
-            if gpu:
-                inference.to(torch.device("cuda"))
 
+            audio1_path = None
+            audio2_path = None
             try:
-                embedding1 = inference(audio1_path)
-                embedding1 = embedding1.reshape(1, -1)
 
-                embedding2 = inference(audio2_path)
-                embedding2 = embedding2.reshape(1, -1)
+                if isinstance(audio1, str):
+                    embedding1 = inference(audio1)
+                    embedding1 = embedding1.reshape(1, -1)
+                    audio1_path = audio1
+                else:
+                    embedding1 = audio1.reshape(1, -1)
+
+                if isinstance(audio2, str):
+                    embedding2 = inference(audio2)
+                    embedding2 = embedding2.reshape(1, -1)
+                    audio2_path = audio2
+                else:
+                    embedding2 = audio2.reshape(1, -1)
 
                 distance = cdist(embedding1, embedding2, metric="cosine")[0, 0]
 
                 # NOTE: ≤ 0.5: Often considered a “same speaker” indicator.
 
                 results.append({
-                    "embedding1": embedding1,
-                    "embedding2": embedding2,
+                    "embedding1": audio1_path,
+                    "embedding2": audio2_path,
                     "distance": distance,
                     "verified": distance <= threshold
                 })
+                return results
+
+            except Exception as e:
+                if not silent:
+                    print(f"Error during verification: {str(e)}")
+                    import traceback
+                    traceback.print_exc()  # Show full traceback
+                return []
+
+        except Exception as e:
+            if not silent:
+                print(f"Processing error: {str(e)}")
+            return []
+
+        finally:
+            gc.collect()
+
+
+
+    @staticmethod
+    def find(
+            audio: Any,
+            database_path: Any,
+            model: str = "embedding",
+            hf_token: Optional[str] = None,
+            silent: bool = False,
+            threshold: Optional[float] = 0.5
+    ) -> List[Dict[str, Any]] | None:
+        results = []
+
+        try:
+
+            if hf_token is None:
+                hf_token = os.getenv("HUGGINGFACE_TOKEN")
+
+            embed_model = Model.from_pretrained(
+                f"pyannote/{model}",
+                use_auth_token=hf_token,
+                strict=False
+            )
+            inference = Inference(embed_model, window="whole")
+
+            audio1_path = None
+            audio2_path = None
+
+            try:
+
+                if isinstance(audio, str):
+                    audio1_path = audio
+                    embedding1 = inference(audio)
+                    embedding1 = embedding1.reshape(1, -1)
+                else:
+                    embedding1 = audio.reshape(1, -1)
+
+                for file in os.listdir(database_path):
+                    if file.endswith(".wav"):
+                        embedding2 = inference(os.path.join(database_path, file))
+                        embedding2 = embedding2.reshape(1, -1)
+                        distance = cdist(embedding1, embedding2, metric="cosine")[0, 0]
+                        audio2_path = os.path.join(database_path, file)
+                        results.append({
+                            "embedding1": audio1_path,
+                            "embedding2": audio2_path,
+                            "distance": distance,
+                            "verified": distance <= threshold
+                        })
+
                 return results
 
             except Exception as e:

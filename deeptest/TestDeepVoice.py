@@ -18,10 +18,22 @@ def test_verify(audio1_path: str, audio2_path: str):
     verification = DeepVoice.verify(audio1_path, audio2_path)[0]
     print(f"Verify: Distance is {verification['distance']:.2f}, same speaker: {verification['verified']}")
 
+def test_find(audio_path: str, database_path: str):
+    """ `distance` is a `float` describing how dissimilar speakers 1 and 2 are. """
+    matching_voices = DeepVoice.find(audio_path, database_path)
+    for matching_voice in matching_voices:
+        print(
+            f"Matching voice: Distance is {matching_voice['distance']:.2f}, "
+            f"same speaker: {matching_voice['verified']}\n"
+            f"Audio 1: {matching_voice['embedding1']}\n"
+            f"Audio 2: {matching_voice['embedding2']}"
+        )
 
 if __name__ == "__main__":
-    test_extract_voices("trvoice1.wav")
-    # test_represent("trvoice1.wav")
-    # test_verify("trvoice1.wav", "trvoice2.wav")
+    # test_extract_voices("data/trvoice1.wav")
+    # test_represent("data/trvoice1.wav")
+    # test_verify("data/trvoice1.wav", "data/trvoice2.wav")
+    test_find("data/trvoice1.wav", "data")
+
 
 

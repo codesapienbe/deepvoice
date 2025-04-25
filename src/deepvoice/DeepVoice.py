@@ -95,7 +95,7 @@ class DeepVoice:
 
 
     @staticmethod
-    def represent(
+    def represent_voice(
             audio_path: Any,
             embedding_model: str="embedding",
             hf_token: Optional[str] = None,
@@ -134,7 +134,7 @@ class DeepVoice:
             gc.collect()
 
     @staticmethod
-    def verify(
+    def verify_voice(
             audio1: Any,
             audio2: Any,
             model: str = "embedding",
@@ -210,7 +210,7 @@ class DeepVoice:
 
 
     @staticmethod
-    def find(
+    def find_voices(
             audio: Any,
             database_path: Any,
             model: str = "embedding",
@@ -273,3 +273,98 @@ class DeepVoice:
 
         finally:
             gc.collect()
+
+
+    @staticmethod
+    def represent_emotions(
+            audio_path: Any,
+            model: Optional[str] = "speechbrain/emotion-recognition-wav2vec2-IEMOCAP",
+            hf_token: Optional[str] = None,
+            silent: Optional[bool] = False
+    ) -> List[Dict[str, Any]] | None:
+
+        try:
+            if hf_token is None:
+                hf_token = os.getenv("HUGGINGFACE_TOKEN")
+
+            # Load a pre-trained emotion recognition model
+            from transformers import pipeline
+            classifier = pipeline(
+                "audio-classification",
+                model=model,
+                token=hf_token
+            )
+
+            # Perform emotion classification
+            emotion_result = classifier(audio_path)
+
+            # Format results
+            results = [{
+                "emotion": item["label"],
+                "confidence": item["score"],
+                "path": audio_path
+            } for item in emotion_result]
+
+            return results
+
+        except Exception as e:
+            if not silent:
+                print(f"Emotion processing error: {str(e)}")
+            return []
+
+        finally:
+            gc.collect()
+
+
+    @staticmethod
+    def extract_emotions(
+            audio_path: Any,
+            hf_token: Optional[str] = None,
+            max_speakers: Optional[int] = 3,
+            silent: Optional[bool] = False
+    ) -> List[Dict[str, Any]] | None:
+
+        try:
+            # First, extract all voice segments
+            voice_segments = DeepVoice.extract_voices(
+                audio_path,
+                hf_token=hf_token,
+                max_speakers=max_speakers,
+                silent=silent
+            )
+
+            if not voice_segments:
+                return []
+
+            # Load emotion model
+            from transformers import pipeline
+            emotion_classifier = pipeline(
+                "audio-classification",
+                model="speechbrain/emotion-recognition-wav2vec2-IEMOCAP",
+                token=hf_token
+            )
+
+            results = []
+
+            # Analyze each segment
+            for segment in voice_segments:
+                segment_path = segment["path"]
+                emotion_result = emotion_classifier(segment_path)
+
+                # Get top emotion
+                top_emotion = emotion_result[0]["label"]
+                confidence = emotion_result[0]["score"]
+
+                # Add emotion data to segment info
+                emotion_segment = segment.copy()
+                emotion_segment["emotion"] = top_emotion
+                emotion_segment["emotion_confidence"] = confidence
+
+                results.append(emotion_segment)
+
+            return results
+
+        except Exception as e:
+            if not silent:
+                print(f"Emotional speech analysis error: {str(e)}")
+            return []

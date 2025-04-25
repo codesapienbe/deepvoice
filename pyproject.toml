@@ -31,6 +31,7 @@ dependencies = [
     "PyAudio",
     "python-dotenv",
     "ffmpeg-python",
+    "transformers"
 ]
 
 [project.urls]

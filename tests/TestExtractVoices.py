@@ -1,4 +1,19 @@
+import unittest
+
 from deepvoice import DeepVoice
+
+class TestExtractVoices(unittest.TestCase):
+
+    def setUp(self):
+        # Get HF token from environment
+        self.hf_token = os.environ.get("HUGGINGFACE_TOKEN")
+        if not self.hf_token:
+            self.skipTest("HUGGINGFACE_TOKEN environment variable not set")
+
+        # Path to test an audio file
+        self.test_audio = "data/trvoice1.wav"
+        if not os.path.exists(self.test_audio):
+            self.skipTest(f"Test audio file not found: {self.test_audio}")
 
 def test_extract_voices(audio_path: str):
     voices = DeepVoice.extract_voices(audio_path=audio_path)
@@ -28,12 +43,6 @@ def test_find(audio_path: str, database_path: str):
             f"Audio 1: {matching_voice['embedding1']}\n"
             f"Audio 2: {matching_voice['embedding2']}"
         )
-
-if __name__ == "__main__":
-    # test_extract_voices("data/trvoice1.wav")
-    # test_represent("data/trvoice1.wav")
-    # test_verify("data/trvoice1.wav", "data/trvoice2.wav")
-    test_find("data/trvoice1.wav", "data")
 
 
 

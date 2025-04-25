@@ -1,11 +1,38 @@
-.idea
-.venv
-.vscode
-/venv/
-/deepenv/
-.env
-/build/
-/deepvoice.egg-info/
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
 
-/deeptest/data/
-*.wav
+# Environment
+.env
+.venv
+env/
+venv/
+ENV/
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Project specific
+~/.deepvoice/
+/deepenv/

@@ -271,32 +271,6 @@ function showSearchResults() {
     showNotification('Voice search completed!');
 }
 
-// Enhanced code syntax highlighting
-function highlightCode() {
-    const codeBlocks = document.querySelectorAll('pre code');
-    codeBlocks.forEach(block => {
-        let html = block.innerHTML;
-        
-        // Highlight Python keywords
-        html = html.replace(/\b(from|import|def|class|if|else|elif|for|while|try|except|finally|with|as|return|yield|lambda|and|or|not|in|is|None|True|False|print)\b/g, 
-            '<span style="color: var(--color-primary); font-weight: 600;">$1</span>');
-        
-        // Highlight strings
-        html = html.replace(/(['"])((?:(?!\1)[^\\]|\\.)*)(\1)/g, 
-            '<span style="color: var(--color-success);">$1$2$3</span>');
-        
-        // Highlight comments
-        html = html.replace(/(#.*$)/gm, 
-            '<span style="color: var(--color-text-secondary); font-style: italic;">$1</span>');
-        
-        // Highlight function calls
-        html = html.replace(/(\w+)(\()/g, 
-            '<span style="color: var(--color-warning);">$1</span>$2');
-        
-        block.innerHTML = html;
-    });
-}
-
 // Smooth scroll for navigation
 function setupSmoothScroll() {
     const navLinks = document.querySelectorAll('.nav-link[href^="#"]');
@@ -496,9 +470,9 @@ function enhanceButtons() {
 // Initialize everything when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🎤 DeepVoice Demo Application Loaded');
+    Prism.highlightAll();
     
     // Setup all functionality
-    highlightCode();
     setupSmoothScroll();
     addScrollAnimationStyles();
     setupScrollAnimations();

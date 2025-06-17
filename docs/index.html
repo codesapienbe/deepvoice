@@ -79,7 +79,7 @@
                             <div class="upload-icon">📁</div>
                             <p>Drop audio file here or click to upload</p>
                             <small>Supports WAV, MP3, FLAC, M4A, OGG</small>
-                            <input type="file" id="diarization-file" class="hidden" accept="audio/*" onchange="processDiarization()">
+                            <input type="file" id="diarization-file" class="hidden" accept="audio/*" onchange="processDiarization()" title="Diarization File">
                         </div>
                         <div class="sample-files">
                             <button class="btn btn--sm btn--secondary" onclick="loadSampleDiarization()">Try Sample Audio</button>
@@ -111,7 +111,7 @@
                         <div class="code-example">
                             <div class="code-header">
                                 <span>Python Code</span>
-                                <button class="copy-btn" onclick="copyCode('diarization-code')">📋</button>
+                                <button aria-label="Copy code" class="copy-btn" onclick="copyCode('diarization-code')">📋</button>
                             </div>
                             <pre id="diarization-code"><code class="language-python">from deepvoice import DeepVoice
 
@@ -141,12 +141,12 @@ for voice in voices:
                             <div class="upload-area" onclick="triggerFileUpload('voice1')">
                                 <div class="upload-icon">🎤</div>
                                 <p>Voice Sample 1</p>
-                                <input type="file" id="voice1-file" class="hidden" accept="audio/*" onchange="processVerification()">
+                                <input type="file" id="voice1-file" class="hidden" accept="audio/*" onchange="processVerification()" title="Voice Sample 1">
                             </div>
                             <div class="upload-area" onclick="triggerFileUpload('voice2')">
                                 <div class="upload-icon">🎤</div>
                                 <p>Voice Sample 2</p>
-                                <input type="file" id="voice2-file" class="hidden" accept="audio/*" onchange="processVerification()">
+                                <input type="file" id="voice2-file" class="hidden" accept="audio/*" onchange="processVerification()" title="Voice Sample 2">
                             </div>
                         </div>
                         <button class="btn btn--sm btn--secondary" onclick="loadSampleVerification()">Try Sample Comparison</button>
@@ -177,7 +177,7 @@ for voice in voices:
                         <div class="code-example">
                             <div class="code-header">
                                 <span>Python Code</span>
-                                <button class="copy-btn" onclick="copyCode('verification-code')">📋</button>
+                                <button aria-label="Copy code" class="copy-btn" onclick="copyCode('verification-code')">📋</button>
                             </div>
                             <pre id="verification-code"><code class="language-python">from deepvoice import DeepVoice
 
@@ -209,7 +209,7 @@ else:
                             <div class="upload-icon">📁</div>
                             <p>Upload voice sample</p>
                             <small>For embedding extraction</small>
-                            <input type="file" id="embeddings-file" class="hidden" accept="audio/*" onchange="processEmbeddings()">
+                            <input type="file" id="embeddings-file" class="hidden" accept="audio/*" onchange="processEmbeddings()" title="Embedding File">
                         </div>
                         <button class="btn btn--sm btn--secondary" onclick="loadSampleEmbeddings()">Generate Sample Embeddings</button>
                     </div>
@@ -243,7 +243,7 @@ else:
                         <div class="code-example">
                             <div class="code-header">
                                 <span>Python Code</span>
-                                <button class="copy-btn" onclick="copyCode('embeddings-code')">📋</button>
+                                <button aria-label="Copy code" class="copy-btn" onclick="copyCode('embeddings-code')">📋</button>
                             </div>
                             <pre id="embeddings-code"><code class="language-python">from deepvoice import DeepVoice
 
@@ -273,7 +273,7 @@ print(f"Embedding dimensions: {len(vector)}")</code></pre>
                             <div class="upload-icon">🎯</div>
                             <p>Target Voice</p>
                             <small>Upload voice to search for</small>
-                            <input type="file" id="search-file" class="hidden" accept="audio/*" onchange="processSearch()">
+                            <input type="file" id="search-file" class="hidden" accept="audio/*" onchange="processSearch()" title="Search File" aria-label="Search File">
                         </div>
                         <button class="btn btn--sm btn--secondary" onclick="loadSampleSearch()">Search Sample Database</button>
                     </div>
@@ -306,7 +306,7 @@ print(f"Embedding dimensions: {len(vector)}")</code></pre>
                         <div class="code-example">
                             <div class="code-header">
                                 <span>Python Code</span>
-                                <button class="copy-btn" onclick="copyCode('search-code')">📋</button>
+                                <button aria-label="Copy code" class="copy-btn" onclick="copyCode('search-code')">📋</button>
                             </div>
                             <pre id="search-code"><code class="language-python">from deepvoice import DeepVoice
 

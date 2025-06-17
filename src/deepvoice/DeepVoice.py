@@ -10,6 +10,7 @@ import torch
 from scipy.spatial.distance import cdist
 from deepvoice import DiarizationBackend, EmbeddingBackend, VerificationBackend
 from deepvoice import PyannoteDiarization, PyannoteEmbedding, PyannoteVerification
+from tqdm import tqdm  # Added for progress bars
 
 load_dotenv(
     "../../.env",
@@ -154,18 +155,20 @@ class DeepVoice:
                 else:
                     embedding1 = audio.reshape(1, -1)
 
-                for file in os.listdir(database_path):
-                    if file.endswith(".wav"):
-                        embedding2 = inference(os.path.join(database_path, file))
-                        embedding2 = embedding2.reshape(1, -1)
-                        distance = cdist(embedding1, embedding2, metric="cosine")[0, 0]
-                        audio2_path = os.path.join(database_path, file)
-                        results.append({
-                            "embedding1": audio1_path,
-                            "embedding2": audio2_path,
-                            "distance": distance,
-                            "verified": distance <= threshold
-                        })
+                # Prepare list of .wav files
+                wav_files = [f for f in os.listdir(database_path) if f.endswith(".wav")]
+                iterator = tqdm(wav_files, desc="Finding voices") if not silent else wav_files
+                for file in iterator:
+                    embedding2 = inference(os.path.join(database_path, file))
+                    embedding2 = embedding2.reshape(1, -1)
+                    distance = cdist(embedding1, embedding2, metric="cosine")[0, 0]
+                    audio2_path = os.path.join(database_path, file)
+                    results.append({
+                        "embedding1": audio1_path,
+                        "embedding2": audio2_path,
+                        "distance": distance,
+                        "verified": distance <= threshold
+                    })
 
                 return results
 
@@ -256,8 +259,9 @@ class DeepVoice:
 
             results = []
 
-            # Analyze each segment
-            for segment in voice_segments:
+            # Analyze each segment with progress bar
+            iterator = tqdm(voice_segments, desc="Extracting emotions") if not silent else voice_segments
+            for segment in iterator:
                 segment_path = segment["path"]
                 emotion_result = emotion_classifier(segment_path)
 

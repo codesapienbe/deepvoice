@@ -8,6 +8,8 @@ from dotenv import load_dotenv
 from pyannote.audio import Pipeline, Audio, Inference, Model
 import torch
 from scipy.spatial.distance import cdist
+from deepvoice import DiarizationBackend, EmbeddingBackend, VerificationBackend
+from deepvoice import PyannoteDiarization, PyannoteEmbedding, PyannoteVerification
 
 load_dotenv(
     "../../.env",
@@ -19,6 +21,41 @@ load_dotenv(
 
 class DeepVoice:
 
+    def __init__(self,
+                 diarization_backend: Optional[DiarizationBackend] = None,
+                 embedding_backend: Optional[EmbeddingBackend] = None,
+                 verification_backend: Optional[VerificationBackend] = None,
+                 hf_token: Optional[str] = None):
+        if hf_token is None:
+            hf_token = os.getenv("HUGGINGFACE_TOKEN")
+                
+        if diarization_backend is not None and not isinstance(diarization_backend, DiarizationBackend):
+            raise ValueError("diarization_backend must implement DiarizationBackend")
+        
+        self.diarization = diarization_backend or PyannoteDiarization(hf_token=hf_token)
+
+        if embedding_backend is not None and not isinstance(embedding_backend, EmbeddingBackend):
+            raise ValueError("embedding_backend must implement EmbeddingBackend")
+        
+        self.embedding = embedding_backend or PyannoteEmbedding(hf_token=hf_token)
+
+        if verification_backend is not None and not isinstance(verification_backend, VerificationBackend):
+            raise ValueError("verification_backend must implement VerificationBackend")
+        
+        self.verification = verification_backend or PyannoteVerification(hf_token=hf_token)
+
+    def diarize(self, audio_path: str, **kwargs) -> List[Dict[str, Any]]:
+        """Run speaker diarization using the injected backend"""
+        return self.diarization.diarize(audio_path, **kwargs)
+
+    def embed(self, audio_path: str, **kwargs) -> Any:
+        """Generate voice embedding using the injected backend"""
+        return self.embedding.embed(audio_path, **kwargs)
+
+    def verify(self, audio1: Any, audio2: Any, **kwargs) -> float:
+        """Compare two audio samples using the injected backend"""
+        return self.verification.verify(audio1, audio2, **kwargs)
+
     @staticmethod
     def extract_voices(
             audio_path: Any,
@@ -27,72 +64,17 @@ class DeepVoice:
             max_speakers: Optional[int] = 3,
             silent: Optional[bool] = False
     ) -> List[Dict[str, Any]] | None:
-
+        if hf_token is None:
+            hf_token = os.getenv("HUGGINGFACE_TOKEN")
         try:
-            if hf_token is None:
-                hf_token = os.getenv("HUGGINGFACE_TOKEN")
-
-            # Create the base directory and voices subdirectory if they don't exist
-            base_dir = os.path.expanduser("~/.deepvoice")
-            voices_dir = os.path.join(base_dir, "voices")
-            os.makedirs(voices_dir, exist_ok=True)
-
-            diarization_pipeline = Pipeline.from_pretrained(
-                f"pyannote/{model}",
-                use_auth_token=hf_token
-            )
-
-            audio = Audio()
-            duration = audio.get_duration(audio_path)
-
-            diarization = diarization_pipeline(
-                file=audio_path,
-                min_speakers=1,
-                max_speakers=max_speakers,
-            )
-
-            results = []
-
-            # Generate a unique session ID to group related voice segments
-            session_id = datetime.now().strftime("%Y%m%d_%H%M%S")
-
-            for i, (turn, _, speaker) in enumerate(diarization.itertracks(yield_label=True)):
-                start = min(turn.start, duration)
-                end = min(turn.end, duration)
-                if end <= start + 0.01:  # 10ms minimum duration
-                    continue
-
-                # Create a filename with session, speaker and timing information
-                filename = f"{session_id}_{speaker}_{i:04d}_{start:.3f}_{end:.3f}.wav"
-                voice_path = os.path.join(voices_dir, filename)
-
-                # Use ffmpeg for audio trimming
-                (
-                    ffmpeg
-                    .input(audio_path)
-                    .output(voice_path, ss=start, to=end)
-                    .overwrite_output()
-                    .run(quiet=True)
-                )
-
-                segment_details = {
-                    "speaker": speaker,
-                    "start": round(start, 3),
-                    "end": round(end, 3),
-                    "path": voice_path.replace("\\", "/"),
-                }
-                results.append(segment_details)
-
-            return results
-
+            backend = PyannoteDiarization(hf_token=hf_token, model=model)
+            return backend.diarize(audio_path, max_speakers=max_speakers, silent=silent)
         except Exception as e:
             if not silent:
-                print(f"Voice processing error: {str(e)}")
+                print(f"Voice processing error: {e}")
             return []
-
         finally:
             gc.collect()
-
 
     @staticmethod
     def represent_voice(
@@ -101,35 +83,16 @@ class DeepVoice:
             hf_token: Optional[str] = None,
             silent: bool = False
     ) -> List[Dict[str, Any]] | None:
-        """
-        Extract speaker embeddings using pyannote's embedding model.
-        # 1. visit hf.co/pyannote/embedding and accept user conditions
-        # 2. visit hf.co/settings/tokens to create an access token
-        # 3. instantiate pretrained model
-        """
-        results = []
+        if hf_token is None:
+            hf_token = os.getenv("HUGGINGFACE_TOKEN")
         try:
-
-            if hf_token is None:
-                hf_token = os.getenv("HUGGINGFACE_TOKEN")
-
-            embed_model = Model.from_pretrained(
-                f"pyannote/{embedding_model}",
-                use_auth_token=hf_token,
-                strict=False
-            )
-            inference = Inference(embed_model, window="whole")
-            embedding = inference(audio_path)
-            results.append({
-                "embedding": embedding
-            })
-            return results
-
+            backend = PyannoteEmbedding(hf_token=hf_token, model=embedding_model)
+            embedding = backend.embed(audio_path, silent=silent)
+            return [{"embedding": embedding}]
         except Exception as e:
             if not silent:
-                print(f"Processing error: {str(e)}")
+                print(f"Processing error: {e}")
             return []
-
         finally:
             gc.collect()
 
@@ -142,72 +105,19 @@ class DeepVoice:
             silent: bool = False,
             threshold: Optional[float] = 0.5
     ) -> List[Dict[str, Any]] | None:
-        """
-        Extract speaker embeddings' using pyannote's embedding model, then compare them.
-        # 1. visit hf.co/pyannote/embedding and accept user conditions
-        # 2. visit hf.co/settings/tokens to create an access token
-        # 3. instantiate pretrained model
-        """
-        results = []
-
+        if hf_token is None:
+            hf_token = os.getenv("HUGGINGFACE_TOKEN")
         try:
-
-            if hf_token is None:
-                hf_token = os.getenv("HUGGINGFACE_TOKEN")
-
-            embed_model = Model.from_pretrained(
-                f"pyannote/{model}",
-                use_auth_token=hf_token,
-                strict=False
-            )
-            inference = Inference(embed_model, window="whole")
-
-            audio1_path = None
-            audio2_path = None
-            try:
-
-                if isinstance(audio1, str):
-                    embedding1 = inference(audio1)
-                    embedding1 = embedding1.reshape(1, -1)
-                    audio1_path = audio1
-                else:
-                    embedding1 = audio1.reshape(1, -1)
-
-                if isinstance(audio2, str):
-                    embedding2 = inference(audio2)
-                    embedding2 = embedding2.reshape(1, -1)
-                    audio2_path = audio2
-                else:
-                    embedding2 = audio2.reshape(1, -1)
-
-                distance = cdist(embedding1, embedding2, metric="cosine")[0, 0]
-
-                # NOTE: ≤ 0.5: Often considered a “same speaker” indicator.
-
-                results.append({
-                    "embedding1": audio1_path,
-                    "embedding2": audio2_path,
-                    "distance": distance,
-                    "verified": distance <= threshold
-                })
-                return results
-
-            except Exception as e:
-                if not silent:
-                    print(f"Error during verification: {str(e)}")
-                    import traceback
-                    traceback.print_exc()  # Show full traceback
-                return []
-
+            backend = PyannoteVerification(hf_token=hf_token, model=model)
+            distance = backend.verify(audio1, audio2, threshold=threshold, silent=silent)
+            verified = distance <= threshold
+            return [{"embedding1": audio1, "embedding2": audio2, "distance": distance, "verified": verified}]
         except Exception as e:
             if not silent:
-                print(f"Processing error: {str(e)}")
+                print(f"Error during verification: {e}")
             return []
-
         finally:
             gc.collect()
-
-
 
     @staticmethod
     def find_voices(

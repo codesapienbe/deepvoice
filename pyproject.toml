@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "deepvoice"
+version = "0.1.1"
+authors = [
+  { name="Yilmaz Mustafa", email="ymus@tuta.io" },
+]
+description = "A comprehensive Python library for voice analysis, processing, and speaker identification"
+readme = "README.md"
+requires-python = ">=3.10,<3.11"
+
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+license = { text = "MIT" }
+dependencies = [
+    "numpy",
+    "scipy",
+    "torch",
+    "torchaudio",
+    "pyannote.audio",
+    "librosa",
+    "soundfile",
+    "matplotlib",
+    "PyAudio",
+    "python-dotenv",
+    "ffmpeg-python",
+    "transformers"
+]
+
+[project.urls]
+Homepage = "https://github.com/codesapienbe/deepvoice"
+Issues = "https://github.com/codesapienbe/deepvoice/issues"

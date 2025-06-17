@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeepVoice - Advanced Voice Analysis & Speaker Identification</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <nav class="container flex justify-between items-center py-16">
+            <div class="flex items-center gap-8">
+                <div class="logo">
+                    <h2 class="m-0">🎤 DeepVoice</h2>
+                </div>
+            </div>
+            <div class="nav-menu flex items-center gap-16">
+                <a href="#features" class="nav-link">Features</a>
+                <a href="#docs" class="nav-link">Documentation</a>
+                <a href="#installation" class="nav-link">Installation</a>
+                <a href="https://github.com/codesapienbe/deepvoice" target="_blank" class="btn btn--primary btn--sm">
+                    GitHub
+                </a>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <h1 class="hero-title">Advanced Voice Analysis & Speaker Identification</h1>
+                <p class="hero-subtitle">A comprehensive Python library for voice analysis, processing, and speaker identification using state-of-the-art AI techniques.</p>
+                <div class="hero-features">
+                    <div class="feature-badge">🎯 Speaker Diarization</div>
+                    <div class="feature-badge">🔍 Voice Verification</div>
+                    <div class="feature-badge">🧠 Voice Embeddings</div>
+                    <div class="feature-badge">🔎 Voice Search</div>
+                </div>
+                <div class="hero-actions">
+                    <button class="btn btn--primary btn--lg" onclick="scrollToSection('features')">Try Demo</button>
+                    <a href="https://github.com/codesapienbe/deepvoice" target="_blank" class="btn btn--outline btn--lg">View Documentation</a>
+                </div>
+                <div class="install-badge">
+                    <code>pip install git+https://github.com/codesapienbe/deepvoice.git</code>
+                    <button class="copy-btn" onclick="copyToClipboard('pip install git+https://github.com/codesapienbe/deepvoice.git')">📋</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="features-section">
+        <div class="container">
+            <div class="section-header">
+                <h2>Powerful Voice Analysis Features</h2>
+                <p>Explore the capabilities of DeepVoice through interactive demonstrations</p>
+            </div>
+
+            <!-- Speaker Diarization -->
+            <div class="feature-demo card">
+                <div class="feature-header">
+                    <div class="feature-icon">👥</div>
+                    <div>
+                        <h3>Speaker Diarization</h3>
+                        <p>Segment audio by speaker and identify who speaks when</p>
+                    </div>
+                </div>
+                <div class="demo-content">
+                    <div class="demo-left">
+                        <div class="upload-area" onclick="triggerFileUpload('diarization')">
+                            <div class="upload-icon">📁</div>
+                            <p>Drop audio file here or click to upload</p>
+                            <small>Supports WAV, MP3, FLAC, M4A, OGG</small>
+                            <input type="file" id="diarization-file" class="hidden" accept="audio/*" onchange="processDiarization()">
+                        </div>
+                        <div class="sample-files">
+                            <button class="btn btn--sm btn--secondary" onclick="loadSampleDiarization()">Try Sample Audio</button>
+                        </div>
+                    </div>
+                    <div class="demo-right">
+                        <div id="diarization-results" class="results-panel hidden">
+                            <div class="waveform-placeholder">
+                                <div class="waveform-bars"></div>
+                            </div>
+                            <div class="speaker-segments">
+                                <div class="segment" data-speaker="0">
+                                    <span class="speaker-label">Speaker 0</span>
+                                    <span class="time-range">0.5s - 3.2s</span>
+                                    <p>"Hello, welcome to our meeting today."</p>
+                                </div>
+                                <div class="segment" data-speaker="1">
+                                    <span class="speaker-label">Speaker 1</span>
+                                    <span class="time-range">3.5s - 6.8s</span>
+                                    <p>"Thank you for having me. I'm excited to discuss the project."</p>
+                                </div>
+                                <div class="segment" data-speaker="0">
+                                    <span class="speaker-label">Speaker 0</span>
+                                    <span class="time-range">7.0s - 9.5s</span>
+                                    <p>"Great! Let's start with the overview."</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="code-example">
+                            <div class="code-header">
+                                <span>Python Code</span>
+                                <button class="copy-btn" onclick="copyCode('diarization-code')">📋</button>
+                            </div>
+                            <pre id="diarization-code"><code>from deepvoice import DeepVoice
+
+# Extract voices from an audio file
+voices = DeepVoice.extract_voices("recording.wav")
+
+# Output: List of dictionaries with speaker info
+for voice in voices:
+    print(f"Speaker {voice['speaker']}: {voice['start']}s - {voice['end']}s")</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Voice Verification -->
+            <div class="feature-demo card">
+                <div class="feature-header">
+                    <div class="feature-icon">🛡️</div>
+                    <div>
+                        <h3>Voice Verification</h3>
+                        <p>Compare voice samples to determine if they belong to the same speaker</p>
+                    </div>
+                </div>
+                <div class="demo-content">
+                    <div class="demo-left">
+                        <div class="upload-grid">
+                            <div class="upload-area" onclick="triggerFileUpload('voice1')">
+                                <div class="upload-icon">🎤</div>
+                                <p>Voice Sample 1</p>
+                                <input type="file" id="voice1-file" class="hidden" accept="audio/*" onchange="processVerification()">
+                            </div>
+                            <div class="upload-area" onclick="triggerFileUpload('voice2')">
+                                <div class="upload-icon">🎤</div>
+                                <p>Voice Sample 2</p>
+                                <input type="file" id="voice2-file" class="hidden" accept="audio/*" onchange="processVerification()">
+                            </div>
+                        </div>
+                        <button class="btn btn--sm btn--secondary" onclick="loadSampleVerification()">Try Sample Comparison</button>
+                    </div>
+                    <div class="demo-right">
+                        <div id="verification-results" class="results-panel hidden">
+                            <div class="similarity-meter">
+                                <div class="meter-label">Similarity Score</div>
+                                <div class="meter-bar">
+                                    <div class="meter-fill" style="width: 87%"></div>
+                                </div>
+                                <div class="meter-value">87%</div>
+                            </div>
+                            <div class="verification-status">
+                                <div class="status status--success">✓ Match Verified</div>
+                                <div class="verification-details">
+                                    <div class="detail">
+                                        <span>Confidence:</span>
+                                        <span>High</span>
+                                    </div>
+                                    <div class="detail">
+                                        <span>Distance:</span>
+                                        <span>0.13</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="code-example">
+                            <div class="code-header">
+                                <span>Python Code</span>
+                                <button class="copy-btn" onclick="copyCode('verification-code')">📋</button>
+                            </div>
+                            <pre id="verification-code"><code>from deepvoice import DeepVoice
+
+# Verify if two voice samples match
+result = DeepVoice.verify("voice1.wav", "voice2.wav")
+
+# Check verification result
+if result[0]['verified']:
+    print(f"Match! Similarity: {result[0]['distance']:.3f}")
+else:
+    print("No match detected")</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Voice Embeddings -->
+            <div class="feature-demo card">
+                <div class="feature-header">
+                    <div class="feature-icon">🧠</div>
+                    <div>
+                        <h3>Voice Embeddings</h3>
+                        <p>Create numerical representations of voice characteristics</p>
+                    </div>
+                </div>
+                <div class="demo-content">
+                    <div class="demo-left">
+                        <div class="upload-area" onclick="triggerFileUpload('embeddings')">
+                            <div class="upload-icon">📁</div>
+                            <p>Upload voice sample</p>
+                            <small>For embedding extraction</small>
+                            <input type="file" id="embeddings-file" class="hidden" accept="audio/*" onchange="processEmbeddings()">
+                        </div>
+                        <button class="btn btn--sm btn--secondary" onclick="loadSampleEmbeddings()">Generate Sample Embeddings</button>
+                    </div>
+                    <div class="demo-right">
+                        <div id="embeddings-results" class="results-panel hidden">
+                            <div class="embedding-info">
+                                <div class="info-item">
+                                    <span class="label">Embedding Size:</span>
+                                    <span class="value">512 dimensions</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="label">Processing Time:</span>
+                                    <span class="value">0.8s</span>
+                                </div>
+                            </div>
+                            <div class="embedding-visualization">
+                                <div class="viz-header">Sample Values:</div>
+                                <div class="embedding-values">
+                                    <span class="value">0.234</span>
+                                    <span class="value">-0.567</span>
+                                    <span class="value">0.123</span>
+                                    <span class="value">0.890</span>
+                                    <span class="value">-0.234</span>
+                                    <span class="ellipsis">...</span>
+                                </div>
+                                <div class="embedding-chart">
+                                    <canvas id="embedding-chart" width="300" height="150"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="code-example">
+                            <div class="code-header">
+                                <span>Python Code</span>
+                                <button class="copy-btn" onclick="copyCode('embeddings-code')">📋</button>
+                            </div>
+                            <pre id="embeddings-code"><code>from deepvoice import DeepVoice
+
+# Get voice embeddings
+embeddings = DeepVoice.represent("voice.wav")
+
+# Access the embedding vector
+vector = embeddings[0]['embedding']
+print(f"Embedding dimensions: {len(vector)}")</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Voice Search -->
+            <div class="feature-demo card">
+                <div class="feature-header">
+                    <div class="feature-icon">🔍</div>
+                    <div>
+                        <h3>Voice Search</h3>
+                        <p>Find matching voices in a database of voice samples</p>
+                    </div>
+                </div>
+                <div class="demo-content">
+                    <div class="demo-left">
+                        <div class="upload-area" onclick="triggerFileUpload('search')">
+                            <div class="upload-icon">🎯</div>
+                            <p>Target Voice</p>
+                            <small>Upload voice to search for</small>
+                            <input type="file" id="search-file" class="hidden" accept="audio/*" onchange="processSearch()">
+                        </div>
+                        <button class="btn btn--sm btn--secondary" onclick="loadSampleSearch()">Search Sample Database</button>
+                    </div>
+                    <div class="demo-right">
+                        <div id="search-results" class="results-panel hidden">
+                            <div class="search-matches">
+                                <div class="match-item">
+                                    <div class="match-info">
+                                        <span class="match-speaker">John Doe</span>
+                                        <span class="match-file">voice_001.wav</span>
+                                    </div>
+                                    <div class="match-score">92%</div>
+                                </div>
+                                <div class="match-item">
+                                    <div class="match-info">
+                                        <span class="match-speaker">Jane Smith</span>
+                                        <span class="match-file">voice_045.wav</span>
+                                    </div>
+                                    <div class="match-score">78%</div>
+                                </div>
+                                <div class="match-item">
+                                    <div class="match-info">
+                                        <span class="match-speaker">Mike Johnson</span>
+                                        <span class="match-file">voice_123.wav</span>
+                                    </div>
+                                    <div class="match-score">65%</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="code-example">
+                            <div class="code-header">
+                                <span>Python Code</span>
+                                <button class="copy-btn" onclick="copyCode('search-code')">📋</button>
+                            </div>
+                            <pre id="search-code"><code>from deepvoice import DeepVoice
+
+# Search for similar voices
+matches = DeepVoice.find("target.wav", "voice_database/")
+
+# Sort by similarity
+matches.sort(key=lambda x: x['distance'])
+print(f"Best match: {matches[0]['path']}")</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Installation Section -->
+    <section id="installation" class="installation-section">
+        <div class="container">
+            <div class="section-header">
+                <h2>Installation & Getting Started</h2>
+                <p>Get up and running with DeepVoice in minutes</p>
+            </div>
+            
+            <div class="installation-grid">
+                <div class="install-step card">
+                    <div class="step-number">1</div>
+                    <h3>Requirements</h3>
+                    <ul>
+                        <li>Python 3.9+</li>
+                        <li>FFmpeg</li>
+                    </ul>
+                </div>
+                
+                <div class="install-step card">
+                    <div class="step-number">2</div>
+                    <h3>Install</h3>
+                    <div class="install-command">
+                        <code>pip install git+https://github.com/codesapienbe/deepvoice.git</code>
+                        <button class="copy-btn" onclick="copyToClipboard('pip install git+https://github.com/codesapienbe/deepvoice.git')">📋</button>
+                    </div>
+                </div>
+                
+                <div class="install-step card">
+                    <div class="step-number">3</div>
+                    <h3>Hugging Face Token</h3>
+                    <p>Set up your Hugging Face token for model access:</p>
+                    <div class="install-command">
+                        <code>export HUGGINGFACE_TOKEN=your_token_here</code>
+                        <button class="copy-btn" onclick="copyToClipboard('export HUGGINGFACE_TOKEN=your_token_here')">📋</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Performance Section -->
+    <section class="performance-section">
+        <div class="container">
+            <div class="section-header">
+                <h2>Performance & Specifications</h2>
+            </div>
+            
+            <div class="performance-grid">
+                <div class="perf-card card">
+                    <h4>Supported Formats</h4>
+                    <div class="format-list">
+                        <span class="format-badge">WAV</span>
+                        <span class="format-badge">MP3</span>
+                        <span class="format-badge">FLAC</span>
+                        <span class="format-badge">M4A</span>
+                        <span class="format-badge">OGG</span>
+                    </div>
+                </div>
+                
+                <div class="perf-card card">
+                    <h4>Processing Speed</h4>
+                    <div class="perf-metric">
+                        <span class="metric-value">Real-time</span>
+                        <span class="metric-desc">On modern hardware</span>
+                    </div>
+                </div>
+                
+                <div class="perf-card card">
+                    <h4>Accuracy</h4>
+                    <div class="perf-metric">
+                        <span class="metric-value">95%+</span>
+                        <span class="metric-desc">On clean audio</span>
+                    </div>
+                </div>
+                
+                <div class="perf-card card">
+                    <h4>Max Speakers</h4>
+                    <div class="perf-metric">
+                        <span class="metric-value">10+</span>
+                        <span class="metric-desc">Automatic detection</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>DeepVoice</h4>
+                    <p>Advanced voice analysis and speaker identification library</p>
+                </div>
+                <div class="footer-section">
+                    <h5>Resources</h5>
+                    <a href="https://github.com/codesapienbe/deepvoice" target="_blank">GitHub Repository</a>
+                    <a href="https://github.com/codesapienbe/deepvoice/issues" target="_blank">Issue Tracker</a>
+                </div>
+                <div class="footer-section">
+                    <h5>Community</h5>
+                    <a href="https://github.com/codesapienbe/deepvoice/blob/main/CONTRIBUTING.md" target="_blank">Contributing</a>
+                    <a href="https://github.com/codesapienbe/deepvoice/blob/main/LICENSE" target="_blank">License (MIT)</a>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 Yilmaz Mustafa. Licensed under MIT License.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>

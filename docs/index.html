@@ -8,6 +8,9 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
 </head>
 <body>
     <!-- Header -->
@@ -110,7 +113,7 @@
                                 <span>Python Code</span>
                                 <button class="copy-btn" onclick="copyCode('diarization-code')">📋</button>
                             </div>
-                            <pre id="diarization-code"><code>from deepvoice import DeepVoice
+                            <pre id="diarization-code"><code class="language-python">from deepvoice import DeepVoice
 
 # Extract voices from an audio file
 voices = DeepVoice.extract_voices("recording.wav")
@@ -176,7 +179,7 @@ for voice in voices:
                                 <span>Python Code</span>
                                 <button class="copy-btn" onclick="copyCode('verification-code')">📋</button>
                             </div>
-                            <pre id="verification-code"><code>from deepvoice import DeepVoice
+                            <pre id="verification-code"><code class="language-python">from deepvoice import DeepVoice
 
 # Verify if two voice samples match
 result = DeepVoice.verify("voice1.wav", "voice2.wav")
@@ -242,7 +245,7 @@ else:
                                 <span>Python Code</span>
                                 <button class="copy-btn" onclick="copyCode('embeddings-code')">📋</button>
                             </div>
-                            <pre id="embeddings-code"><code>from deepvoice import DeepVoice
+                            <pre id="embeddings-code"><code class="language-python">from deepvoice import DeepVoice
 
 # Get voice embeddings
 embeddings = DeepVoice.represent("voice.wav")
@@ -305,7 +308,7 @@ print(f"Embedding dimensions: {len(vector)}")</code></pre>
                                 <span>Python Code</span>
                                 <button class="copy-btn" onclick="copyCode('search-code')">📋</button>
                             </div>
-                            <pre id="search-code"><code>from deepvoice import DeepVoice
+                            <pre id="search-code"><code class="language-python">from deepvoice import DeepVoice
 
 # Search for similar voices
 matches = DeepVoice.find("target.wav", "voice_database/")

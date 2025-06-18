@@ -158,17 +158,20 @@ class DeepVoice:
                 else:
                     embedding1 = audio.reshape(1, -1)
 
-                # Prepare list of .wav files
-                wav_files = [f for f in os.listdir(database_path) if f.endswith(".wav")]
-                iterator = tqdm(wav_files, desc="Finding voices") if not silent else wav_files
-                for file in iterator:
-                    embedding2 = inference(os.path.join(database_path, file))
+                # Recursively collect all .wav files
+                wav_paths = []
+                for root, dirs, files in os.walk(database_path):
+                    for fname in files:
+                        if fname.lower().endswith(".wav"):
+                            wav_paths.append(os.path.join(root, fname))
+                iterator = tqdm(wav_paths, desc="Finding voices") if not silent else wav_paths
+                for audio2_path in iterator:
+                    embedding2 = inference(audio2_path)
                     embedding2 = embedding2.reshape(1, -1)
                     # Compute and convert numpy types to native Python types for JSON serialization
                     raw_distance = cdist(embedding1, embedding2, metric="cosine")[0, 0]
                     distance = float(raw_distance)
                     verified = bool(distance <= threshold)
-                    audio2_path = os.path.join(database_path, file)
                     results.append({
                         "embedding1": audio1_path,
                         "embedding2": audio2_path,

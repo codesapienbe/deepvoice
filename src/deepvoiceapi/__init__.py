@@ -10,6 +10,8 @@ import tempfile
 from pathlib import Path
 import logging
 import logging.config
+import zipfile
+import os
 
 from deepvoiceworker import convert_to_wav_task, extract_voices_task, represent_voice_task, verify_voice_task, find_voices_task, represent_emotions_task, extract_emotions_task, task_service
 
@@ -220,7 +222,7 @@ async def verify_voice_api(
 @api_service.post("/find_voices")
 async def find_voices_api(
     file: UploadFile = File(...),
-    database_path: str = Form(...),
+    zip_file: UploadFile = File(...),
     model: str = Form("embedding"),
     hf_token: Optional[str] = Form(None),
     silent: bool = Form(False),
@@ -231,9 +233,26 @@ async def find_voices_api(
     tmp.flush()
     tmp_path = tmp.name
     tmp.close()
+    # Save and extract uploaded zip as database
+    zip_tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".zip")
+    zip_tmp.write(await zip_file.read())
+    zip_tmp.flush()
+    zip_path = zip_tmp.name
+    zip_tmp.close()
+    # Create temporary directory for database audio
+    db_temp_dir = tempfile.mkdtemp()
+    with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+        zip_ref.extractall(db_temp_dir)
+    # Remove the zip file
+    os.remove(zip_path)
+    # Delete non-audio files from the database directory
+    for root, dirs, files in os.walk(db_temp_dir):
+        for fname in files:
+            if not fname.lower().endswith((".wav", ".mp3", ".flac", ".ogg", ".m4a", ".aac")):
+                os.remove(os.path.join(root, fname))
     params = {
         "audio": tmp_path,
-        "database_path": database_path,
+        "database_path": db_temp_dir,
         "model": model,
         "hf_token": hf_token,
         "silent": silent,

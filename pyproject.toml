@@ -36,12 +36,16 @@ dependencies = [
     "python-multipart",
     "pydantic",
     "celery",
-    "redis"
+    "redis",
+    "docker",
+    "pytz"
 ]
 
 [project.scripts]
-deepvoiceapi = "deepvoiceapi:main"
-deepvoicetest = "deepvoicetest:main"
+dvapi = "deepvoiceapi:main"
+dvtest = "deepvoicetest:main"
+dvworker = "deepvoiceworker:main"
+dvmq = "deepvoicemq:main"
 
 [project.urls]
 Homepage = "https://github.com/codesapienbe/deepvoice"

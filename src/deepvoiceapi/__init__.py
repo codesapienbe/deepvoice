@@ -1,16 +1,77 @@
 from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Optional, Dict, Any, List
-from celery import Celery, chain
+from typing import Optional
+from celery import chain
 from celery.result import AsyncResult
 import time
 import uvicorn
-from deepvoice import DeepVoice
 import tempfile
 from pathlib import Path
-import ffmpeg  # for audio conversion
-import threading  # for embedded Celery worker
+import logging
+import logging.config
+
+from deepvoiceworker import convert_to_wav_task, extract_voices_task, represent_voice_task, verify_voice_task, find_voices_task, represent_emotions_task, extract_emotions_task, task_service
+
+# Ensure log directory exists
+LOG_DIR = Path.home() / ".deepvoice" / "logs"
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+
+# Configure logging
+LOGGING_CONFIG = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "standard": {
+            "format": "[%(asctime)s] %(levelname)s %(name)s: %(message)s"
+        }
+    },
+    "handlers": {
+        "core_file": {
+            "class": "logging.FileHandler",
+            "filename": str(LOG_DIR / "core.log"),
+            "formatter": "standard",
+            "level": "DEBUG"
+        },
+        "api_file": {
+            "class": "logging.FileHandler",
+            "filename": str(LOG_DIR / "api.log"),
+            "formatter": "standard",
+            "level": "INFO"
+        },
+        "tasks_file": {
+            "class": "logging.FileHandler",
+            "filename": str(LOG_DIR / "tasks.log"),
+            "formatter": "standard",
+            "level": "INFO"
+        },
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "standard",
+            "level": "DEBUG",
+            "stream": "ext://sys.stdout"
+        }
+    },
+    "loggers": {
+        "deepvoice": {
+            "handlers": ["core_file", "console"],
+            "level": "DEBUG",
+            "propagate": False
+        },
+        "uvicorn": {
+            "handlers": ["api_file", "console"],
+            "level": "INFO",
+            "propagate": False
+        },
+        "celery": {
+            "handlers": ["tasks_file", "console"],
+            "level": "INFO",
+            "propagate": False
+        }
+    }
+}
+
+logging.config.dictConfig(LOGGING_CONFIG)
 
 # Initialize FastAPI app
 api_service = FastAPI(title="DeepVoice API")
@@ -23,25 +84,6 @@ api_service.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Initialize Celery
-task_service = Celery(
-    'deepvoice',
-    broker='memory://',
-    backend='rpc://'
-)
-
-# Configure Celery
-task_service.conf.update(
-    task_serializer='json',
-    accept_content=['json'],
-    result_serializer='json',
-    timezone='UTC',
-    enable_utc=True,
-)
-
-# Initialize DeepVoice
-deepvoice = DeepVoice()
 
 # Added request models for new DeepVoice functions
 class ExtractVoicesRequest(BaseModel):
@@ -84,68 +126,6 @@ class ExtractEmotionsRequest(BaseModel):
     hf_token: Optional[str] = None
     max_speakers: Optional[int] = None
     silent: Optional[bool] = None
-
-# Celery task: convert various audio formats to WAV before processing
-@task_service.task
-def convert_to_wav_task(params: Dict[str, Any]) -> Dict[str, Any]:
-    # Check and convert any audio keys in params
-    for key in ('audio_path', 'audio', 'audio1', 'audio2'):
-        path = params.get(key)
-        if isinstance(path, str) and not path.lower().endswith('.wav'):
-            output_path = f"{path}.wav"
-            # Convert to WAV
-            ffmpeg.input(path).output(output_path, format='wav').run(overwrite_output=True)
-            params[key] = output_path
-    return params
-
-# Added Celery tasks for new DeepVoice functions
-@task_service.task
-def extract_voices_task(params: Dict[str, Any]) -> Dict[str, Any]:
-    try:
-        result = deepvoice.extract_voices(**params)
-        return {"status": "success", "result": result}
-    except Exception as e:
-        raise
-
-@task_service.task
-def represent_voice_task(params: Dict[str, Any]) -> Dict[str, Any]:
-    try:
-        result = deepvoice.represent_voice(**params)
-        return {"status": "success", "result": result}
-    except Exception as e:
-        raise
-
-@task_service.task
-def verify_voice_task(params: Dict[str, Any]) -> Dict[str, Any]:
-    try:
-        result = deepvoice.verify_voice(**params)
-        return {"status": "success", "result": result}
-    except Exception as e:
-        raise
-
-@task_service.task
-def find_voices_task(params: Dict[str, Any]) -> Dict[str, Any]:
-    try:
-        result = deepvoice.find_voices(**params)
-        return {"status": "success", "result": result}
-    except Exception as e:
-        raise
-
-@task_service.task
-def represent_emotions_task(params: Dict[str, Any]) -> Dict[str, Any]:
-    try:
-        result = deepvoice.represent_emotions(**params)
-        return {"status": "success", "result": result}
-    except Exception as e:
-        raise
-
-@task_service.task
-def extract_emotions_task(params: Dict[str, Any]) -> Dict[str, Any]:
-    try:
-        result = deepvoice.extract_emotions(**params)
-        return {"status": "success", "result": result}
-    except Exception as e:
-        raise
 
 # API endpoints with file upload support and automatic conversion
 @api_service.post("/extract_voices")
@@ -330,33 +310,27 @@ async def get_task_status(task_id: str):
 async def health_check():
     return {"status": "healthy"}
 
-# Function to start a Celery worker in-process
-def start_celery_worker():
-    # Run the Celery worker with solo pool to avoid forking
-    task_service.worker_main(argv=['worker', '--loglevel=info', '--pool=solo'])
+def log_start_time(start_time: float):
+    print(f"Starting DeepVoice API at {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start_time))}")
+
+def log_end_time(start_time: float):
+    end_time = time.time()
+    print(f"DeepVoice API exited at {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(end_time))}")
+    active_time = end_time - start_time
+    days, remainder = divmod(active_time, 86400)
+    hours, remainder = divmod(remainder, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    print(f"DeepVoice API was active for {int(days)} days, {int(hours)} hours, {int(minutes)} minutes, and {int(seconds)} seconds")
 
 def main():
+    start_time = time.time()
     try:
-        # Start time
-        start_time = time.time()
-        print(f"Starting DeepVoice API and embedded Celery worker at {start_time}")
-        # Launch Celery worker in background thread
-        worker_thread = threading.Thread(
-            target=start_celery_worker,
-            daemon=True
-        )
-        worker_thread.start()
-        # Launch FastAPI server (blocks until shutdown)
+        log_start_time(start_time)
         uvicorn.run(api_service, host="0.0.0.0", port=8000)
-        end_time = time.time()
-        print(f"DeepVoice API exited at {end_time}")
-        active_time = end_time - start_time
-        days, remainder = divmod(active_time, 86400)
-        hours, remainder = divmod(remainder, 3600)
-        minutes, seconds = divmod(remainder, 60)
-        print(f"DeepVoice API was active for {int(days)} days, {int(hours)} hours, {int(minutes)} minutes, and {int(seconds)} seconds")
     except Exception as e:
         print(f"Error starting DeepVoice API: {e}")
+    finally:
+        log_end_time(start_time)
 
 if __name__ == "__main__":
     main()

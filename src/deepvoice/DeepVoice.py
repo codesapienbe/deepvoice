@@ -112,7 +112,9 @@ class DeepVoice:
         try:
             backend = PyannoteVerification(hf_token=hf_token, model=model)
             distance = backend.verify(audio1, audio2, threshold=threshold, silent=silent)
-            verified = distance <= threshold
+            # Convert numpy types to native Python types for JSON serialization
+            distance = float(distance)
+            verified = bool(distance <= threshold)
             return [{"embedding1": audio1, "embedding2": audio2, "distance": distance, "verified": verified}]
         except Exception as e:
             if not silent:
@@ -162,13 +164,16 @@ class DeepVoice:
                 for file in iterator:
                     embedding2 = inference(os.path.join(database_path, file))
                     embedding2 = embedding2.reshape(1, -1)
-                    distance = cdist(embedding1, embedding2, metric="cosine")[0, 0]
+                    # Compute and convert numpy types to native Python types for JSON serialization
+                    raw_distance = cdist(embedding1, embedding2, metric="cosine")[0, 0]
+                    distance = float(raw_distance)
+                    verified = bool(distance <= threshold)
                     audio2_path = os.path.join(database_path, file)
                     results.append({
                         "embedding1": audio1_path,
                         "embedding2": audio2_path,
                         "distance": distance,
-                        "verified": distance <= threshold
+                        "verified": verified
                     })
 
                 return results

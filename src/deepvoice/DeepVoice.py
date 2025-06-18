@@ -11,6 +11,7 @@ from scipy.spatial.distance import cdist
 from deepvoice import DiarizationBackend, EmbeddingBackend, VerificationBackend
 from deepvoice import PyannoteDiarization, PyannoteEmbedding, PyannoteVerification
 from tqdm import tqdm  # Added for progress bars
+from . import config
 
 load_dotenv(
     "../../.env",
@@ -60,13 +61,13 @@ class DeepVoice:
     @staticmethod
     def extract_voices(
             audio_path: Any,
-            model: Optional[str] = "speaker-diarization-3.0",
+            model: Optional[str] = config.DEFAULT_DIARIZATION_MODEL,
             hf_token: Optional[str] = None,
-            max_speakers: Optional[int] = 3,
-            silent: Optional[bool] = False
+            max_speakers: Optional[int] = config.DEFAULT_MAX_SPEAKERS,
+            silent: Optional[bool] = config.DEFAULT_SILENT
     ) -> List[Dict[str, Any]] | None:
         if hf_token is None:
-            hf_token = os.getenv("HUGGINGFACE_TOKEN")
+            hf_token = os.getenv(config.DEFAULT_HF_TOKEN_ENV_VAR)
         try:
             backend = PyannoteDiarization(hf_token=hf_token, model=model)
             return backend.diarize(audio_path, max_speakers=max_speakers, silent=silent)
@@ -80,12 +81,12 @@ class DeepVoice:
     @staticmethod
     def represent_voice(
             audio_path: Any,
-            embedding_model: str="embedding",
+            embedding_model: str = config.DEFAULT_EMBEDDING_MODEL,
             hf_token: Optional[str] = None,
-            silent: bool = False
+            silent: bool = config.DEFAULT_SILENT
     ) -> List[Dict[str, Any]] | None:
         if hf_token is None:
-            hf_token = os.getenv("HUGGINGFACE_TOKEN")
+            hf_token = os.getenv(config.DEFAULT_HF_TOKEN_ENV_VAR)
         try:
             backend = PyannoteEmbedding(hf_token=hf_token, model=embedding_model)
             embedding = backend.embed(audio_path, silent=silent)
@@ -102,13 +103,13 @@ class DeepVoice:
     def verify_voice(
             audio1: Any,
             audio2: Any,
-            model: str = "embedding",
+            model: str = config.DEFAULT_VERIFICATION_MODEL,
             hf_token: Optional[str] = None,
-            silent: bool = False,
-            threshold: Optional[float] = 0.5
+            silent: bool = config.DEFAULT_SILENT,
+            threshold: Optional[float] = config.DEFAULT_THRESHOLD
     ) -> List[Dict[str, Any]] | None:
         if hf_token is None:
-            hf_token = os.getenv("HUGGINGFACE_TOKEN")
+            hf_token = os.getenv(config.DEFAULT_HF_TOKEN_ENV_VAR)
         try:
             backend = PyannoteVerification(hf_token=hf_token, model=model)
             distance = backend.verify(audio1, audio2, threshold=threshold, silent=silent)
@@ -127,72 +128,43 @@ class DeepVoice:
     def find_voices(
             audio: Any,
             database_path: Any,
-            model: str = "embedding",
+            model: str = config.DEFAULT_VERIFICATION_MODEL,
             hf_token: Optional[str] = None,
-            silent: bool = False,
-            threshold: Optional[float] = 0.5
+            silent: bool = config.DEFAULT_SILENT,
+            threshold: Optional[float] = config.DEFAULT_THRESHOLD
     ) -> List[Dict[str, Any]] | None:
         results = []
-
+        if hf_token is None:
+            hf_token = os.getenv(config.DEFAULT_HF_TOKEN_ENV_VAR)
         try:
-
-            if hf_token is None:
-                hf_token = os.getenv("HUGGINGFACE_TOKEN")
-
-            embed_model = Model.from_pretrained(
-                f"pyannote/{model}",
-                use_auth_token=hf_token,
-                strict=False
-            )
-            inference = Inference(embed_model, window="whole")
-
-            audio1_path = None
-            audio2_path = None
-
-            try:
-
-                if isinstance(audio, str):
-                    audio1_path = audio
-                    embedding1 = inference(audio)
-                    embedding1 = embedding1.reshape(1, -1)
-                else:
-                    embedding1 = audio.reshape(1, -1)
-
-                # Recursively collect all .wav files
-                wav_paths = []
-                for root, dirs, files in os.walk(database_path):
-                    for fname in files:
-                        if fname.lower().endswith(".wav"):
-                            wav_paths.append(os.path.join(root, fname))
-                iterator = tqdm(wav_paths, desc="Finding voices") if not silent else wav_paths
-                for audio2_path in iterator:
-                    embedding2 = inference(audio2_path)
-                    embedding2 = embedding2.reshape(1, -1)
-                    # Compute and convert numpy types to native Python types for JSON serialization
-                    raw_distance = cdist(embedding1, embedding2, metric="cosine")[0, 0]
-                    distance = float(raw_distance)
-                    verified = bool(distance <= threshold)
-                    results.append({
-                        "embedding1": audio1_path,
-                        "embedding2": audio2_path,
-                        "distance": distance,
-                        "verified": verified
-                    })
-
-                return results
-
-            except Exception as e:
-                if not silent:
-                    print(f"Error during verification: {str(e)}")
-                    import traceback
-                    traceback.print_exc()  # Show full traceback
-                return []
-
+            # Recursively collect all audio files
+            audio_exts = config.SUPPORTED_AUDIO_EXTENSIONS
+            audio_paths = []
+            for root, dirs, files in os.walk(database_path):
+                for fname in files:
+                    if fname.lower().endswith(audio_exts):
+                        audio_paths.append(os.path.join(root, fname))
+            # Use ThreadPoolExecutor for parallel verification
+            import concurrent.futures
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                futures = {
+                    executor.submit(DeepVoice.verify_voice, audio, path, model, hf_token, silent, threshold): path
+                    for path in audio_paths
+                }
+                for future in concurrent.futures.as_completed(futures):
+                    path = futures[future]
+                    try:
+                        res = future.result()
+                        if res:
+                            results.extend(res)
+                    except Exception as e:
+                        if not silent:
+                            print(f"Error processing {path}: {e}")
+            return results
         except Exception as e:
             if not silent:
-                print(f"Processing error: {str(e)}")
+                print(f"Processing error: {e}")
             return []
-
         finally:
             gc.collect()
 
@@ -200,14 +172,14 @@ class DeepVoice:
     @staticmethod
     def represent_emotions(
             audio_path: Any,
-            model: Optional[str] = "speechbrain/emotion-recognition-wav2vec2-IEMOCAP",
+            model: Optional[str] = config.DEFAULT_EMOTION_MODEL,
             hf_token: Optional[str] = None,
-            silent: Optional[bool] = False
+            silent: Optional[bool] = config.DEFAULT_SILENT
     ) -> List[Dict[str, Any]] | None:
 
         try:
             if hf_token is None:
-                hf_token = os.getenv("HUGGINGFACE_TOKEN")
+                hf_token = os.getenv(config.DEFAULT_HF_TOKEN_ENV_VAR)
 
             # Load a pre-trained emotion recognition model
             from transformers import pipeline
@@ -242,8 +214,8 @@ class DeepVoice:
     def extract_emotions(
             audio_path: Any,
             hf_token: Optional[str] = None,
-            max_speakers: Optional[int] = 3,
-            silent: Optional[bool] = False
+            max_speakers: Optional[int] = config.DEFAULT_MAX_SPEAKERS,
+            silent: Optional[bool] = config.DEFAULT_SILENT
     ) -> List[Dict[str, Any]] | None:
 
         try:

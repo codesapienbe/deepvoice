@@ -89,7 +89,8 @@ class DeepVoice:
         try:
             backend = PyannoteEmbedding(hf_token=hf_token, model=embedding_model)
             embedding = backend.embed(audio_path, silent=silent)
-            return [{"embedding": embedding}]
+            # Convert numpy array to list for JSON serialization
+            return [{"embedding": embedding.tolist()}]
         except Exception as e:
             if not silent:
                 print(f"Processing error: {e}")

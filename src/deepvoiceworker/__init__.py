@@ -3,12 +3,13 @@ from typing import Dict, Any
 import ffmpeg  # for audio conversion
 from deepvoice import DeepVoice
 from pytz import timezone
+from deepvoice.config import CELERY_BROKER_URL, CELERY_RESULT_BACKEND
 
-# Initialize Celery
+# Initialize Celery using environment-configured URLs
 task_service = Celery(
     'deepvoice',
-    broker='redis://localhost:6379/0',
-    backend='redis://localhost:6379/0'
+    broker=CELERY_BROKER_URL,
+    backend=CELERY_RESULT_BACKEND
 )
 
 # Configure Celery

@@ -1,0 +1,50 @@
+version: "3.8"
+
+services:
+  redis:
+    build:
+      context: ./redis
+    container_name: redis
+    environment:
+      - REDIS_USERNAME=${REDIS_USERNAME:-default}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-deepvoicepass}
+    ports:
+      - "6379:6379"
+    networks:
+      - deepvoicenet
+
+  celery:
+    build:
+      context: ./celery
+    container_name: celery
+    depends_on:
+      - redis
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-deepvoicepass}
+    networks:
+      - deepvoicenet
+
+  api:
+    build:
+      context: ./api
+    container_name: api
+    depends_on:
+      - redis
+      - celery
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-deepvoicepass}
+      - HUGGINGFACE_TOKEN=${HUGGINGFACE_TOKEN}
+    ports:
+      - "8000:8000"
+    networks:
+      - deepvoicenet
+
+networks:
+  deepvoicenet:
+    driver: bridge 

@@ -36,3 +36,5 @@ ENV/
 # Project specific
 ~/.deepvoice/
 /deepenv/
+wav2vec2_checkpoints/
+wav2vec2_large.pt

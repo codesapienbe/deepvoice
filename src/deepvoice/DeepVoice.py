@@ -180,26 +180,19 @@ class DeepVoice:
         try:
             if hf_token is None:
                 hf_token = os.getenv(config.DEFAULT_HF_TOKEN_ENV_VAR)
-
-            # Load a pre-trained emotion recognition model
-            from transformers import pipeline
-            classifier = pipeline(
-                "audio-classification",
-                model=model,
-                token=hf_token
+            # Configure HuggingFace Hub token if provided
+            if hf_token:
+                os.environ["HF_HUB_TOKEN"] = hf_token
+            # Use SpeechBrain foreign_class for emotion recognition
+            from speechbrain.inference.interfaces import foreign_class
+            classifier = foreign_class(
+                source=model,
+                pymodule_file="custom_interface.py",
+                classname="CustomEncoderWav2vec2Classifier"
             )
-
-            # Perform emotion classification
-            emotion_result = classifier(audio_path)
-
-            # Format results
-            results = [{
-                "emotion": item["label"],
-                "confidence": item["score"],
-                "path": audio_path
-            } for item in emotion_result]
-
-            return results
+            # Perform emotion classification on file
+            out_prob, score, idx, label = classifier.classify_file(audio_path)
+            return [{"emotion": label, "confidence": float(score), "path": audio_path}]
 
         except Exception as e:
             if not silent:
